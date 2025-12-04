@@ -2,11 +2,8 @@ import requests
 import re
 from bs4 import BeautifulSoup
 
-# 设置代理
-proxies = {
-    'http': 'http://127.0.0.1:7890',
-    'https': 'http://127.0.0.1:7890',
-}
+# 不使用代理
+proxies = None
 
 # 测试URL，使用用户提供的接口
 keyword = "成都"
@@ -19,7 +16,7 @@ headers = {
 
 # 获取页面内容
 try:
-    response = requests.get(url, headers=headers, proxies=proxies, timeout=10)
+    response = requests.get(url, headers=headers, timeout=10)
     response.raise_for_status()
     html = response.text
     print("成功获取页面内容")

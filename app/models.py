@@ -125,3 +125,41 @@ class Monitor(db.Model):
     
     def __repr__(self):
         return f'<Monitor {self.id}>'
+
+# 数据采集任务模型
+class CrawlTask(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    keywords = db.Column(db.Text)  # 采集关键词或需求
+    status = db.Column(db.String(32), default='pending')  # pending, running, completed, failed
+    progress = db.Column(db.Integer, default=0)  # 采集进度（百分比）
+    total_items = db.Column(db.Integer, default=0)  # 总采集数量
+    crawled_items = db.Column(db.Integer, default=0)  # 已采集数量
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    user = db.relationship('User', backref='crawl_tasks')
+    crawl_data = db.relationship('CrawlData', backref='task', lazy='dynamic')
+    
+    def __repr__(self):
+        return f'<CrawlTask {self.id} - {self.status}>'
+
+# 采集数据临时存储模型
+class CrawlData(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    task_id = db.Column(db.Integer, db.ForeignKey('crawl_task.id'))
+    title = db.Column(db.String(256), nullable=False)
+    content = db.Column(db.Text)  # 初始采集可能为空，深度采集后填充
+    source = db.Column(db.String(128))
+    url = db.Column(db.String(512), nullable=False)
+    cover = db.Column(db.String(512))  # 封面图片URL
+    publish_time = db.Column(db.DateTime)
+    crawl_time = db.Column(db.DateTime, default=datetime.utcnow)
+    is_deep_crawled = db.Column(db.Boolean, default=False)  # 是否已深度采集
+    deep_crawl_time = db.Column(db.DateTime)  # 深度采集时间
+    news_id = db.Column(db.Integer, db.ForeignKey('news.id'))  # 关联到正式新闻表
+    
+    news = db.relationship('News', backref='crawl_data')
+    
+    def __repr__(self):
+        return f'<CrawlData {self.id} - {self.title}>'

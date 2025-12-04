@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据采集管理 - 舆情监控系统</title>
+    <!-- 引入LayUI CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='layui/css/layui.css') }}">
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 0;
+        }
+        .header {
+            height: 60px;
+            background-color: #23262e;
+            color: #fff;
+            line-height: 60px;
+            padding: 0 20px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 20px;
+        }
+        .header .user-info {
+            float: right;
+        }
+        .header .user-info a {
+            color: #fff;
+            text-decoration: none;
+            margin-left: 20px;
+        }
+        .container {
+            display: flex;
+            margin-top: 60px;
+            min-height: calc(100vh - 60px);
+        }
+        .sidebar {
+            width: 200px;
+            background-color: #393d49;
+            position: fixed;
+            left: 0;
+            top: 60px;
+            bottom: 0;
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+        }
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .sidebar li {
+            border-bottom: 1px solid #4e5465;
+        }
+        .sidebar a {
+            display: block;
+            padding: 15px 20px;
+            color: #c2c2c2;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        .sidebar a:hover {
+            background-color: #4e5465;
+            color: #fff;
+        }
+        .sidebar a.active {
+            background-color: #009688;
+            color: #fff;
+        }
+        .content {
+            flex: 1;
+            margin-left: 200px;
+            padding: 20px;
+            transition: margin-left 0.3s ease;
+        }
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            .content {
+                margin-left: 0;
+            }
+            .header h1 {
+                font-size: 16px;
+            }
+            .header .user-info span {
+                display: none;
+            }
+        }
+        .panel {
+            background-color: white;
+            border-radius: 4px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .panel-header {
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .panel-header h3 {
+            margin: 0;
+            font-size: 18px;
+            color: #333;
+        }
+        .crawl-form {
+            display: flex;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .crawl-form .layui-input {
+            flex: 1;
+            min-width: 200px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        .progress-container {
+            margin: 20px 0;
+            display: none;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        .progress-inner {
+            height: 100%;
+            background-color: #1890ff;
+            border-radius: 10px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+        .progress-text {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+        }
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .data-card {
+            border: 1px solid #eee;
+            border-radius: 4px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: box-shadow 0.3s ease;
+        }
+        .data-card:hover {
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        }
+        .card-checkbox {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 10;
+        }
+        .card-image {
+            position: relative;
+            width: 100%;
+            height: 200px;
+            overflow: hidden;
+            background-color: #f5f5f5;
+        }
+        .card-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+        .card-image:hover img {
+            transform: scale(1.05);
+        }
+        .card-content {
+            padding: 15px;
+        }
+        .card-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+        .card-meta {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 10px;
+        }
+        .card-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .deep-crawl-btn {
+            background-color: #1890ff;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .deep-crawl-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .crawl-status {
+            font-size: 12px;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        .status-deep-crawled {
+            background-color: #52c41a;
+            color: white;
+        }
+        .status-not-crawled {
+            background-color: #faad14;
+            color: white;
+        }
+        .action-buttons {
+            margin-bottom: 20px;
+        }
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        .flash-messages {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        .flash-message {
+            padding: 10px 20px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            color: white;
+        }
+        .flash-success {
+            background-color: #52c41a;
+        }
+        .flash-error {
+            background-color: #f5222d;
+        }
+        {% endif %}
+        {% endwith %}
+    </style>
+</head>
+<body>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-messages">
+        {% for category, message in messages %}
+        <div class="flash-message flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <div class="header">
+        <div style="display: flex; align-items: center;">
+            <button class="layui-btn layui-btn-primary layui-btn-sm" id="menu-toggle" style="margin-right: 10px;">
+                <i class="layui-icon layui-icon-menu"></i>
+            </button>
+            舆情监控系统 - 数据采集管理
+        </div>
+        <div class="user-info">
+            <span>欢迎您，{{ current_user.username }}</span>
+            <a href="{{ url_for('main.logout') }}" style="margin-left: 15px; color: white; text-decoration: none;">退出登录</a>
+        </div>
+    </div>
+    
+    <!-- 主体容器 -->
+    <div class="container">
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+            <ul>
+                <li><a href="{{ url_for('main.dashboard') }}">仪表盘</a></li>
+                <li><a href="{{ url_for('main.news_list') }}">新闻管理</a></li>
+                <li><a href="{{ url_for('main.topic_list') }}">话题管理</a></li>
+                <li><a href="{{ url_for('main.crawl_management') }}" class="active">数据采集管理</a></li>
+                {% if current_user.has_role('admin') %}
+                <li><a href="{{ url_for('main.admin_management') }}">后台管理</a></li>
+                <li><a href="{{ url_for('main.settings') }}">系统设置</a></li>
+                <li><a href="{{ url_for('main.test_crawl') }}">数据抓取</a></li>
+                {% endif %}
+            </ul>
+        </div>
+        
+        <!-- 内容区域 -->
+        <div class="content">
+            <!-- 采集表单面板 -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h3>数据采集</h3>
+                </div>
+                <div class="crawl-form">
+                    <input type="text" id="keywords" placeholder="请输入采集关键词或需求" class="layui-input" required>
+                    <button id="crawl-btn" class="layui-btn layui-btn-primary">开始采集</button>
+                </div>
+                
+                <!-- 进度显示区域 -->
+                <div class="progress-container" id="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-inner" id="progress-inner"></div>
+                    </div>
+                    <div class="progress-text" id="progress-text">准备开始采集...</div>
+                </div>
+            </div>
+            
+            <!-- 批量操作按钮 -->
+            <div class="action-buttons">
+                <button id="select-all" class="layui-btn layui-btn-primary">全选</button>
+                <button id="select-none" class="layui-btn layui-btn-primary">取消全选</button>
+                <button id="save-selected" class="layui-btn layui-btn-primary">保存选中数据</button>
+                <button id="save-all" class="layui-btn layui-btn-primary">保存全部数据</button>
+            </div>
+            
+            <!-- 采集数据展示面板 -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h3>采集结果</h3>
+                </div>
+                <div id="data-results">
+                    {% if crawl_data %}
+                    <div class="data-grid">
+                        {% for data in crawl_data %}
+                        <div class="data-card">
+                            <div class="card-image">
+                                <input type="checkbox" class="card-checkbox" value="{{ data.id }}">
+                                {% if data.cover %}
+                                <a href="{{ data.url }}" target="_blank"><img src="{{ data.cover }}" alt="{{ data.title }}"></a>
+                                {% else %}
+                                <a href="{{ data.url }}" target="_blank" style="display: block; width: 100%; height: 100%; background-color: #f5f5f5; display: flex; align-items: center; justify-content: center; color: #999; text-decoration: none;">暂无封面</a>
+                                {% endif %}
+                            </div>
+                            <div class="card-content">
+                                <div class="card-title">{{ data.title }}</div>
+                                <div class="card-meta">
+                                    来源：{{ data.source or '未知' }} | 
+                                    采集时间：{{ data.crawl_time.strftime('%Y-%m-%d %H:%M') }}
+                                </div>
+                                <div class="card-actions">
+                                    <button class="deep-crawl-btn" data-id="{{ data.id }}" {% if data.is_deep_crawled %}disabled{% endif %}>
+                                        {% if data.is_deep_crawled %}已深度采集{% else %}深度采集{% endif %}
+                                    </button>
+                                    <span class="crawl-status {% if data.is_deep_crawled %}status-deep-crawled{% else %}status-not-crawled{% endif %}">
+                                        {% if data.is_deep_crawled %}已深度采集{% else %}未深度采集{% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div style="text-align: center; padding: 50px; color: #999;">
+                        暂无采集数据，请先输入关键词进行采集
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 引入LayUI JS -->
+    <script src="{{ url_for('static', filename='layui/layui.js') }}"></script>
+    <script>
+        layui.use(['layer', 'jquery'], function() {
+            var layer = layui.layer;
+            var $ = layui.jquery;
+            
+            // 菜单切换按钮
+            $('#menu-toggle').on('click', function() {
+                $('.sidebar').toggleClass('active');
+            });
+            
+            // 开始采集按钮点击事件
+            $('#crawl-btn').on('click', function() {
+                var keywords = $('#keywords').val().trim();
+                if (!keywords) {
+                    layer.msg('请输入采集关键词或需求', {icon: 2});
+                    return;
+                }
+                
+                // 显示进度条
+                $('#progress-container').show();
+                
+                // 创建采集任务
+                $.ajax({
+                    url: '/create_crawl_task',
+                    type: 'POST',
+                    data: {keyword: keywords},
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            var taskId = response.task_id;
+                            $('#progress-text').text('开始采集数据...');
+                            
+                            // 执行采集任务
+                            $.ajax({
+                                url: '/execute_crawl_task/' + taskId,
+                                type: 'GET',
+                                success: function(executeResponse) {
+                                    if (executeResponse.status === 'success') {
+                                        // 更新进度为100%
+                                        $('#progress-inner').css('width', '100%');
+                                        $('#progress-text').text('采集完成，共采集到' + executeResponse.data_count + '条数据');
+                                        
+                                        // 延迟刷新页面以显示采集结果
+                                        setTimeout(function() {
+                                            window.location.href = '/crawl_management';
+                                        }, 1500);
+                                    } else {
+                                        layer.msg('采集失败: ' + executeResponse.message, {icon: 2});
+                                        $('#progress-container').hide();
+                                    }
+                                },
+                                error: function() {
+                                    layer.msg('执行采集任务失败', {icon: 2});
+                                    $('#progress-container').hide();
+                                }
+                            });
+                        } else {
+                            layer.msg('创建采集任务失败: ' + response.message, {icon: 2});
+                            $('#progress-container').hide();
+                        }
+                    },
+                    error: function() {
+                        layer.msg('创建采集任务请求失败', {icon: 2});
+                        $('#progress-container').hide();
+                    }
+                });
+                
+                // 模拟进度更新
+                var progress = 0;
+                var interval = setInterval(function() {
+                    progress = Math.min(progress + 10, 90); // 最多到90%，等待服务器完成
+                    $('#progress-inner').css('width', progress + '%');
+                    $('#progress-text').text('正在采集数据... ' + progress + '%');
+                }, 500);
+            });
+            
+            // 深度采集按钮点击事件
+            $('.deep-crawl-btn').on('click', function() {
+                var id = $(this).data('id');
+                var btn = $(this);
+                var statusSpan = btn.siblings('.crawl-status');
+                
+                btn.text('采集ing...');
+                btn.prop('disabled', true);
+                
+                // 发送深度采集请求
+                $.ajax({
+                    url: '/deep_crawl/' + id,
+                    type: 'GET',
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            btn.text('已深度采集');
+                            btn.prop('disabled', true);
+                            statusSpan.text('已深度采集');
+                            statusSpan.removeClass('status-not-crawled').addClass('status-deep-crawled');
+                            layer.msg('深度采集成功', {icon: 1});
+                        } else {
+                            layer.msg('深度采集失败: ' + response.message, {icon: 2});
+                            btn.text('深度采集');
+                            btn.prop('disabled', false);
+                        }
+                    },
+                    error: function() {
+                        layer.msg('深度采集请求失败', {icon: 2});
+                        btn.text('深度采集');
+                        btn.prop('disabled', false);
+                    }
+                });
+            });
+            
+            // 全选功能
+            $('#select-all').on('click', function() {
+                $('.card-checkbox').prop('checked', true);
+            });
+            
+            // 取消全选功能
+            $('#select-none').on('click', function() {
+                $('.card-checkbox').prop('checked', false);
+            });
+            
+            // 保存选中数据
+            $('#save-selected').on('click', function() {
+                var selectedIds = [];
+                $('.card-checkbox:checked').each(function() {
+                    selectedIds.push($(this).val());
+                });
+                
+                if (selectedIds.length === 0) {
+                    layer.msg('请先选择要保存的数据', {icon: 2});
+                    return;
+                }
+                
+                // 构建FormData对象
+                var formData = new FormData();
+                selectedIds.forEach(function(id) {
+                    formData.append('data_ids[]', id);
+                });
+                
+                // 发送批量保存请求
+                $.ajax({
+                    url: '/save_batch_data',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            layer.msg(response.message, {icon: 1});
+                            window.location.href = '/crawl_management';
+                        } else {
+                            layer.msg('数据保存失败: ' + response.message, {icon: 2});
+                        }
+                    },
+                    error: function() {
+                        layer.msg('数据保存请求失败', {icon: 2});
+                    }
+                });
+            });
+            
+            // 保存全部数据
+            $('#save-all').on('click', function() {
+                var allIds = [];
+                $('.card-checkbox').each(function() {
+                    allIds.push($(this).val());
+                });
+                
+                if (allIds.length === 0) {
+                    layer.msg('暂无数据可保存', {icon: 2});
+                    return;
+                }
+                
+                // 构建FormData对象
+                var formData = new FormData();
+                allIds.forEach(function(id) {
+                    formData.append('data_ids[]', id);
+                });
+                
+                // 发送批量保存请求
+                $.ajax({
+                    url: '/save_batch_data',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            layer.msg(response.message, {icon: 1});
+                            window.location.href = '/crawl_management';
+                        } else {
+                            layer.msg('数据保存失败: ' + response.message, {icon: 2});
+                        }
+                    },
+                    error: function() {
+                        layer.msg('数据保存请求失败', {icon: 2});
+                    }
+                });
+            });
+        });
+        
+        // 自动关闭闪消息
+        setTimeout(function() {
+            var flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach(function(message) {
+                message.style.opacity = '0';
+                message.style.transition = 'opacity 0.5s ease';
+                setTimeout(function() {
+                    message.remove();
+                }, 500);
+            });
+        }, 3000);
+    </script>
+</body>
+</html>

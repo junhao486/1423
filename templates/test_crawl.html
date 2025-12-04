@@ -6,6 +6,124 @@
     <title>数据抓取测试</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='layui/css/layui.css') }}">
     <script src="{{ url_for('static', filename='layui/layui.js') }}"></script>
+    <style>
+        /* 美化新闻列表表格 */
+        .table-responsive {
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+        }
+        
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #fff;
+            transition: all 0.3s ease;
+        }
+        
+        .table th {
+            background-color: #f5f7fa;
+            color: #606266;
+            font-weight: 600;
+            padding: 15px 12px;
+            text-align: left;
+            border-bottom: 2px solid #e4e7ed;
+            font-size: 14px;
+        }
+        
+        .table td {
+            padding: 15px 12px;
+            border-bottom: 1px solid #ebeef5;
+            font-size: 14px;
+            color: #303133;
+        }
+        
+        .table tbody tr {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .table tbody tr:hover {
+            background-color: #fafafa;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+        
+        /* 美化图片显示 */
+        .table td img {
+            max-width: 120px;
+            max-height: 90px;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 1px solid #ebeef5;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+        }
+        
+        .table td img:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        /* 美化无图状态 */
+        .table td .text-muted {
+            display: inline-block;
+            width: 120px;
+            height: 90px;
+            line-height: 90px;
+            text-align: center;
+            background-color: #f5f7fa;
+            color: #909399;
+            border-radius: 6px;
+            border: 1px dashed #dcdfe6;
+            font-size: 14px;
+        }
+        
+        /* 美化标题链接 */
+        .table td a {
+            color: #303133;
+            text-decoration: none;
+            transition: color 0.3s ease;
+            font-weight: 500;
+        }
+        
+        .table td a:hover {
+            color: #409eff;
+            text-decoration: underline;
+        }
+        
+        /* 美化摘要文本 */
+        .table td:nth-child(3) {
+            color: #606266;
+            line-height: 1.6;
+        }
+        
+        /* 美化来源和时间 */
+        .table td:nth-child(4),
+        .table td:nth-child(5) {
+            color: #909399;
+            font-size: 13px;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .table-responsive {
+                overflow-x: auto;
+            }
+            
+            .table td img,
+            .table td .text-muted {
+                max-width: 80px;
+                max-height: 60px;
+            }
+            
+            .table th,
+            .table td {
+                padding: 10px 8px;
+                font-size: 13px;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="layui-layout layui-layout-admin">
@@ -49,9 +167,9 @@
                     </li>
                     {% if current_user.is_admin %}
                     <li class="layui-nav-item">
-                        <a href="{{ url_for('main.user_list') }}">
-                            <i class="layui-icon layui-icon-group"></i>
-                            <span>用户管理</span>
+                        <a href="{{ url_for('main.admin_management') }}">
+                            <i class="layui-icon layui-icon-user"></i>
+                            <span>后台管理</span>
                         </a>
                     </li>
                     <li class="layui-nav-item">
@@ -75,34 +193,155 @@
         <div class="layui-body">
             <div style="padding: 20px;">
                 <div class="layui-card">
-                    <div class="layui-card-header">数据抓取测试</div>
+                    <div class="layui-card-header">数据抓取模块</div>
                     <div class="layui-card-body">
                         {% with messages = get_flashed_messages(with_categories=true) %}
                             {% if messages %}
                                 {% for category, message in messages %}
-                                    <div class="layui-alert layui-bg-{{ 'green' if category == 'success' else 'red' }}" style="margin-bottom: 15px;">
+                                    <div class="layui-alert layui-bg-{{ 'green' if category == 'success' else 'red' if category == 'error' else 'orange' }}" style="margin-bottom: 15px;">
                                         {{ message }}
                                     </div>
                                 {% endfor %}
                             {% endif %}
                         {% endwith %}
                         
-                        <form class="layui-form" method="post">
-                            <div class="layui-form-item">
-                                <label class="layui-form-label">关键词</label>
-                                <div class="layui-input-block">
-                                    <input type="text" name="keyword" placeholder="请输入要抓取的关键词" value="宜宾" autocomplete="off" class="layui-input">
+                        <form class="layui-form" method="post" style="display: flex; align-items: center; flex-wrap: wrap;">
+                            <div class="layui-form-item" style="margin-right: 20px; margin-bottom: 0;">
+                                <label class="layui-form-label" style="width: auto; padding: 9px 5px;">关键词</label>
+                                <div class="layui-input-inline">
+                                    <input type="text" name="keyword" placeholder="可替换关键字" value="" autocomplete="off" class="layui-input">
                                 </div>
                             </div>
-                            <div class="layui-form-item">
-                                <div class="layui-input-block">
-                                    <button class="layui-btn layui-btn-normal" lay-submit lay-filter="formDemo">开始抓取</button>
-                                    <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+                            
+                            <div class="layui-form-item" style="margin-right: 20px; margin-bottom: 0;">
+                                <label class="layui-form-label" style="width: auto; padding: 9px 5px;">数量</label>
+                                <div class="layui-input-inline">
+                                    <select name="num_per_page" lay-verify="required">
+                                        <option value="10">10</option>
+                                        <option value="20" selected>20</option>
+                                        <option value="30">30</option>
+                                        <option value="50">50</option>
+                                    </select>
                                 </div>
+                            </div>
+                            
+                            <div class="layui-form-item" style="margin-right: 20px; margin-bottom: 0;">
+                                <label class="layui-form-label" style="width: auto; padding: 9px 5px;">页码</label>
+                                <div class="layui-input-inline">
+                                    <select name="page" lay-verify="required">
+                                        {% for i in range(1, 6) %}
+                                        <option value="{{ i }}">{{ i }}页</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="layui-form-item" style="margin-right: 20px; margin-bottom: 0;">
+                                <label class="layui-form-label" style="width: auto; padding: 9px 5px;">排序依据</label>
+                                <div class="layui-input-inline">
+                                    <select name="sort_by" lay-verify="required">
+                                        <option value="1" selected>1</option>
+                                        <option value="2">2</option>
+                                        <option value="3">3</option>
+                                        <option value="4">4</option>
+                                        <option value="5">5</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            </div>
+                            <div class="layui-form-item" style="margin-right: 20px; margin-bottom: 0;">
+                                <label class="layui-form-label" style="width: auto; padding: 9px 5px;">热度次数</label>
+                                <div class="layui-input-inline">
+                                    <select name="heat_count" lay-verify="required">
+                                        <option value="1" selected>1</option>
+                                        <option value="2">2</option>
+                                        <option value="3">3</option>
+                                        <option value="4">4</option>
+                                        <option value="5">5</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="layui-form-item" style="margin-bottom: 0;">
+                                <button class="layui-btn layui-btn-normal" lay-submit lay-filter="formDemo">开始抓取</button>
                             </div>
                         </form>
                     </div>
                 </div>
+
+                {% if latest_news %}
+                <div class="layui-card" style="margin-top: 20px;">
+                    <div class="layui-card-header">抓取结果</div>
+                    <div class="layui-card-body">
+                        <div class="table-responsive mt-3">
+                            <table class="layui-table">
+                                <thead>
+                                    <tr>
+                                        <th>封面</th>
+                                        <th>标题</th>
+                                        <th>摘要</th>
+                                        <th>来源</th>
+                                        <th>URL</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for news in latest_news %}
+                                    <tr>
+                                        <td>
+                                            {% if news.cover %}
+                                            <img src="{{ news.cover }}" alt="{{ news.title }}" style="max-width: 100px; max-height: 80px; object-fit: cover; border-radius: 4px;">
+                                            {% else %}
+                                            <span class="text-muted" style="display: inline-block; width: 100px; height: 80px; line-height: 80px; text-align: center; background-color: #f5f7fa; border-radius: 4px;">无图</span>
+                                            {% endif %}
+                                        </td>
+                                        <td style="max-width: 200px;">{{ news.title }}</td>
+                                        <td style="max-width: 300px;">{{ news.content|truncate(150) }}</td>
+                                        <td>{{ news.source or '未知来源' }}</td>
+                                        <td style="max-width: 200px;">
+                                            <a href="{{ news.url }}" target="_blank" class="text-primary" style="text-decoration: none;">查看</a>
+                                        </td>
+                                        <td>
+                                            <a href="{{ news.url }}" target="_blank" class="layui-btn layui-btn-xs layui-btn-primary">原文</a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- 分页控件 -->
+                        <div class="layui-box layui-laypage layui-laypage-default" style="margin-top: 20px; text-align: center;">
+                            <div id="page"></div>
+                        </div>
+                        
+                        <script>
+                            // 初始化分页控件
+                            layui.use(['laypage', 'layer'], function() {
+                                var laypage = layui.laypage;
+                                
+                                // 执行一个laypage实例
+                                laypage.render({
+                                    elem: 'page' //注意，这里的 test1 是 ID，不用加 # 号
+                                    ,count: {{ news_count }} //数据总数，从服务端得到
+                                    ,limit: 20 //每页显示的条数
+                                    ,layout: ['count', 'prev', 'page', 'next', 'limit', 'refresh', 'skip']
+                                    ,jump: function(obj, first) {
+                                        //obj包含了当前分页的所有参数，比如：
+                                        console.log(obj.curr); //得到当前页，以便向服务端请求对应页的数据。
+                                        console.log(obj.limit); //得到每页显示的条数
+                                        
+                                        //首次不执行
+                                        if(!first) {
+                                            //do something
+                                        }
+                                    }
+                                });
+                            });
+                        </script>
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </div>
 

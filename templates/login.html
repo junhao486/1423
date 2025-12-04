@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>登录 - 舆情系统</title>
+    <title>{% if register %}注册{% else %}登录{% endif %} - 舆情系统</title>
     <style>
         body {
             background-color: #f2f2f2;
@@ -33,6 +33,24 @@
             margin: 0;
             transition: font-size 0.3s ease;
         }
+        .tab-container {
+            display: flex;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #ddd;
+        }
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 10px 0;
+            cursor: pointer;
+            color: #666;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .tab.active {
+            color: #009688;
+            border-bottom: 2px solid #009688;
+        }
         .form-group {
             margin-bottom: 20px;
         }
@@ -43,7 +61,8 @@
             font-weight: 500;
         }
         .form-group input[type="text"],
-        .form-group input[type="password"] {
+        .form-group input[type="password"],
+        .form-group input[type="email"] {
             width: 100%;
             padding: 10px 12px;
             border: 1px solid #ddd;
@@ -86,12 +105,33 @@
             border: 1px solid #ffccc7;
             border-radius: 4px;
         }
+        .success-message {
+            color: #52c41a;
+            margin-top: 10px;
+            text-align: center;
+            padding: 10px;
+            background-color: #f6ffed;
+            border: 1px solid #b7eb8f;
+            border-radius: 4px;
+        }
         .footer {
             margin-top: 20px;
             text-align: center;
             font-size: 14px;
             color: #999;
             transition: font-size 0.3s ease;
+        }
+        .toggle-link {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        .toggle-link a {
+            color: #009688;
+            text-decoration: none;
+        }
+        .toggle-link a:hover {
+            text-decoration: underline;
         }
         /* 移动端优化 */
         @media (max-width: 480px) {
@@ -106,7 +146,8 @@
                 font-size: 20px;
             }
             .form-group input[type="text"],
-            .form-group input[type="password"] {
+            .form-group input[type="password"],
+            .form-group input[type="email"] {
                 font-size: 16px;
                 padding: 12px;
             }
@@ -119,45 +160,90 @@
             }
         }
     </style>
+    <script>
+        // 切换登录/注册表单
+        function switchForm(showRegister) {
+            if (showRegister) {
+                window.location.href = '{{ url_for('main.register') }}';
+            } else {
+                window.location.href = '{{ url_for('main.login') }}';
+            }
+        }
+    </script>
 </head>
 <body>
     <div class="login-container">
-        <div class="login-header">
-            <h2>舆情系统登录</h2>
+        <div class="tab-container">
+            <div class="tab {% if not register %}active{% endif %}" onclick="switchForm(false)">登录</div>
+            <div class="tab {% if register %}active{% endif %}" onclick="switchForm(true)">注册</div>
         </div>
         
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="error-message">{{ message }}</div>
+                    <div class="{{ 'success-message' if category == 'success' else 'error-message' }}">{{ message }}</div>
                 {% endfor %}
             {% endif %}
         {% endwith %}
         
-        <form method="post" action="{{ url_for('main.login') }}">
-            <div class="form-group">
-                <label for="username">用户名</label>
-                <input type="text" id="username" name="username" required placeholder="请输入用户名">
+        {% if register %}
+            <form method="post" action="{{ url_for('main.register') }}">
+                <div class="form-group">
+                    <label for="username">用户名</label>
+                    <input type="text" id="username" name="username" required placeholder="请输入用户名">
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">邮箱 (可选)</label>
+                    <input type="email" id="email" name="email" placeholder="请输入邮箱地址">
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">密码</label>
+                    <input type="password" id="password" name="password" required placeholder="请输入密码（至少6位）">
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirm_password">确认密码</label>
+                    <input type="password" id="confirm_password" name="confirm_password" required placeholder="请再次输入密码">
+                </div>
+                
+                <button type="submit" class="btn-submit">注册</button>
+            </form>
+            
+            <div class="toggle-link">
+                <p>已有账号？<a href="{{ url_for('main.login') }}">立即登录</a></p>
+            </div>
+        {% else %}
+            <form method="post" action="{{ url_for('main.login') }}">
+                <div class="form-group">
+                    <label for="username">用户名</label>
+                    <input type="text" id="username" name="username" required placeholder="请输入用户名">
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">密码</label>
+                    <input type="password" id="password" name="password" required placeholder="请输入密码">
+                </div>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="remember" name="remember">
+                    <label for="remember">记住我</label>
+                </div>
+                
+                <button type="submit" class="btn-submit">登录</button>
+            </form>
+            
+            <div class="toggle-link">
+                <p>没有账号？<a href="{{ url_for('main.register') }}">立即注册</a></p>
             </div>
             
-            <div class="form-group">
-                <label for="password">密码</label>
-                <input type="password" id="password" name="password" required placeholder="请输入密码">
+            <div class="footer">
+                <p>系统已成功启动，请使用以下账户登录：</p>
+                <p>管理员: admin / admin123</p>
+                <p>普通用户: user / user123</p>
             </div>
-            
-            <div class="checkbox-group">
-                <input type="checkbox" id="remember" name="remember">
-                <label for="remember">记住我</label>
-            </div>
-            
-            <button type="submit" class="btn-submit">登录</button>
-        </form>
-        
-        <div class="footer">
-            <p>系统已成功启动，请使用以下账户登录：</p>
-            <p>管理员: admin / admin123</p>
-            <p>普通用户: user / user123</p>
-        </div>
+        {% endif %}
     </div>
 </body>
 </html>
