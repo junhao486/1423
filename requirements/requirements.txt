@@ -1,0 +1,9 @@
+Flask==2.2.5
+Flask-SQLAlchemy==3.0.3
+Flask-Migrate==4.0.5
+Flask-Login==0.6.2
+Flask-WTF==1.1.1
+Werkzeug==2.2.3
+requests==2.31.0
+jieba==0.42.1
+python-dotenv==1.0.0

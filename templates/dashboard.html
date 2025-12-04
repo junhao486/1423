@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>仪表盘 - 舆情监控系统</title>
+    <!-- 引入LayUI CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='layui/css/layui.css') }}">
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 0;
+        }
+        .header {
+            height: 60px;
+            background-color: #23262e;
+            color: #fff;
+            line-height: 60px;
+            padding: 0 20px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 20px;
+        }
+        .header .user-info {
+            float: right;
+        }
+        .header .user-info a {
+            color: #fff;
+            text-decoration: none;
+            margin-left: 20px;
+        }
+        .container {
+            display: flex;
+            margin-top: 60px;
+            min-height: calc(100vh - 60px);
+        }
+        .sidebar {
+            width: 200px;
+            background-color: #393d49;
+            position: fixed;
+            left: 0;
+            top: 60px;
+            bottom: 0;
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+        }
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .sidebar li {
+            border-bottom: 1px solid #4e5465;
+        }
+        .sidebar a {
+            display: block;
+            padding: 15px 20px;
+            color: #c2c2c2;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        .sidebar a:hover {
+            background-color: #4e5465;
+            color: #fff;
+        }
+        .sidebar a.active {
+            background-color: #009688;
+            color: #fff;
+        }
+        .content {
+            flex: 1;
+            margin-left: 200px;
+            padding: 20px;
+            transition: margin-left 0.3s ease;
+        }
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            .content {
+                margin-left: 0;
+            }
+            .header h1 {
+                font-size: 16px;
+            }
+            .header .user-info span {
+                display: none;
+            }
+        }
+        .stats-cards {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .stat-card {
+            background-color: white;
+            border-radius: 4px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            flex: 1;
+            margin: 0 10px 10px 0;
+            min-width: 200px;
+        }
+        .stat-card:last-child {
+            margin-right: 0;
+        }
+        .stat-card .number {
+            font-size: 28px;
+            font-weight: bold;
+            color: #20a0ff;
+        }
+        .stat-card .label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .panel {
+            background-color: white;
+            border-radius: 4px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .panel-header {
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .panel-header h3 {
+            margin: 0;
+            font-size: 18px;
+            color: #333;
+        }
+        .news-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .news-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .news-item:last-child {
+            border-bottom: none;
+        }
+        .news-title {
+            font-size: 16px;
+            color: #333;
+            text-decoration: none;
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .news-title:hover {
+            color: #20a0ff;
+        }
+        .news-meta {
+            font-size: 12px;
+            color: #999;
+        }
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        .flash-messages {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        .flash-message {
+            padding: 10px 20px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            color: white;
+        }
+        .flash-success {
+            background-color: #52c41a;
+        }
+        .flash-error {
+            background-color: #f5222d;
+        }
+        {% endif %}
+        {% endwith %}
+    </style>
+</head>
+<body>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-messages">
+        {% for category, message in messages %}
+        <div class="flash-message flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <div class="header">
+        <div style="display: flex; align-items: center;">
+            <button class="layui-btn layui-btn-primary layui-btn-sm" id="menu-toggle" style="margin-right: 10px;">
+                <i class="layui-icon layui-icon-menu"></i>
+            </button>
+            舆情监控系统 - 仪表盘
+        </div>
+        <div class="user-info">
+            <span>欢迎您，{{ current_user.username }}</span>
+            <a href="{{ url_for('main.logout') }}" style="margin-left: 15px; color: white; text-decoration: none;">退出登录</a>
+        </div>
+    </div>
+    
+    <!-- 主体容器 -->
+    <div class="container">
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+            <ul>
+                <li><a href="{{ url_for('main.dashboard') }}" class="active">仪表盘</a></li>
+                <li><a href="{{ url_for('main.news_list') }}">新闻管理</a></li>
+                <li><a href="{{ url_for('main.topic_list') }}">话题管理</a></li>
+                {% if current_user.has_role('admin') %}
+                <li><a href="{{ url_for('main.user_list') }}">用户管理</a></li>
+                <li><a href="{{ url_for('main.role_list') }}">角色管理</a></li>
+                <li><a href="{{ url_for('main.settings') }}">系统设置</a></li>
+                <li><a href="{{ url_for('main.test_crawl') }}">数据抓取</a></li>
+                {% endif %}
+            </ul>
+        </div>
+        
+        <!-- 内容区域 -->
+    
+    
+    <div class="content">
+        <!-- 统计卡片 -->
+        <div class="stats-cards">
+            <div class="stat-card">
+                <div class="number">{{ total_news }}</div>
+                <div class="label">新闻总数</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">{{ total_topics }}</div>
+                <div class="label">话题数量</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">{{ total_comments }}</div>
+                <div class="label">评论总数</div>
+            </div>
+        </div>
+        
+        <!-- 最近新闻面板 -->
+        <div class="panel">
+            <div class="panel-header">
+                <h3>最近新闻</h3>
+            </div>
+            <ul class="news-list">
+                {% for news in recent_news %}
+                <li class="news-item">
+                    <a href="#" class="news-title">{{ news.title }}</a>
+                    <div class="news-meta">
+                        来源：{{ news.source }} | 
+                        发布时间：{{ news.publish_time.strftime('%Y-%m-%d %H:%M') if news.publish_time else '未知' }} | 
+                        评论：{{ news.comments_count }} | 
+                        热度：{{ news.heat_score }}
+                    </div>
+                </li>
+                {% else %}
+                <li class="news-item">暂无新闻数据</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    
+    <!-- 引入LayUI JS -->
+    <script src="{{ url_for('static', filename='layui/layui.js') }}"></script>
+    <script>
+        layui.use(['layer', 'jquery'], function() {
+            var layer = layui.layer;
+            var $ = layui.jquery;
+            
+            // 菜单切换按钮
+            $('#menu-toggle').on('click', function() {
+                $('.sidebar').toggleClass('active');
+            });
+        });
+        
+        // 自动关闭闪消息
+        setTimeout(function() {
+            var flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach(function(message) {
+                message.style.opacity = '0';
+                message.style.transition = 'opacity 0.5s ease';
+                setTimeout(function() {
+                    message.remove();
+                }, 500);
+            });
+        }, 3000);
+    </script>
+</body>
+</html>

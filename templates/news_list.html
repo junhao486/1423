@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>新闻列表 - 舆情监控系统</title>
+    <!-- 引入LayUI CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='layui/css/layui.css') }}">
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f2f5;
+        }
+        .header {
+            height: 60px;
+            background-color: #23262e;
+            color: #fff;
+            line-height: 60px;
+            padding: 0 20px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 20px;
+        }
+        .header .user-info {
+            float: right;
+        }
+        .header .user-info a {
+            color: #fff;
+            text-decoration: none;
+            margin-left: 20px;
+        }
+        .container {
+            display: flex;
+            margin-top: 60px;
+            min-height: calc(100vh - 60px);
+        }
+        .sidebar {
+            width: 200px;
+            background-color: #393d49;
+            position: fixed;
+            left: 0;
+            top: 60px;
+            bottom: 0;
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+        }
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .sidebar li {
+            border-bottom: 1px solid #4e5465;
+        }
+        .sidebar a {
+            display: block;
+            padding: 15px 20px;
+            color: #c2c2c2;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        .sidebar a:hover {
+            background-color: #4e5465;
+            color: #fff;
+        }
+        .sidebar a.active {
+            background-color: #009688;
+            color: #fff;
+        }
+        .content {
+            flex: 1;
+            margin-left: 200px;
+            padding: 20px;
+            transition: margin-left 0.3s ease;
+        }
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            .content {
+                margin-left: 0;
+            }
+            .header h1 {
+                font-size: 16px;
+            }
+            .header .user-info span {
+                display: none;
+            }
+        }
+        .panel {
+            background-color: white;
+            border-radius: 4px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .panel-header h3 {
+            margin: 0 0 20px 0;
+            color: #333;
+        }
+        .search-bar {
+            margin-bottom: 20px;
+        }
+        .search-form {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .form-group {
+            margin-right: 20px;
+            margin-bottom: 10px;
+        }
+        .form-group input,
+        .form-group select {
+            padding: 6px 12px;
+            border: 1px solid #dcdfe6;
+            border-radius: 4px;
+        }
+        .btn {
+            padding: 6px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            border: none;
+        }
+        .btn-primary {
+            background-color: #20a0ff;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #40a9ff;
+        }
+        .table-container {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ebeef5;
+        }
+        th {
+            background-color: #f5f7fa;
+            color: #606266;
+            font-weight: 500;
+        }
+        tr:hover {
+            background-color: #f5f7fa;
+        }
+        .pagination {
+            text-align: right;
+            margin-top: 20px;
+        }
+        .pagination a {
+            display: inline-block;
+            padding: 5px 10px;
+            margin: 0 5px;
+            border: 1px solid #dcdfe6;
+            border-radius: 4px;
+            color: #606266;
+            text-decoration: none;
+        }
+        .pagination a:hover {
+            color: #20a0ff;
+            border-color: #20a0ff;
+        }
+        .pagination .active {
+            background-color: #20a0ff;
+            color: white;
+            border-color: #20a0ff;
+        }
+        .action-buttons a {
+            display: inline-block;
+            padding: 2px 8px;
+            margin-right: 5px;
+            border-radius: 3px;
+            font-size: 12px;
+            text-decoration: none;
+        }
+        .action-view {
+            background-color: #20a0ff;
+            color: white;
+        }
+        .action-edit {
+            background-color: #f4f4f5;
+            color: #606266;
+        }
+        .action-delete {
+            background-color: #f5222d;
+            color: white;
+        }
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        .flash-messages {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        .flash-message {
+            padding: 10px 20px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            color: white;
+        }
+        .flash-success {
+            background-color: #52c41a;
+        }
+        .flash-error {
+            background-color: #f5222d;
+        }
+        {% endif %}
+        {% endwith %}
+    </style>
+</head>
+<body>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-messages">
+        {% for category, message in messages %}
+        <div class="flash-message flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+    
+    <div class="header">
+        <div style="display: flex; align-items: center;">
+            <button class="layui-btn layui-btn-primary layui-btn-sm" id="menu-toggle" style="margin-right: 10px;">
+                <i class="layui-icon layui-icon-menu"></i>
+            </button>
+            舆情监控系统 - 新闻列表
+        </div>
+        <div class="user-info">
+            <span>欢迎您，{{ current_user.username }}</span>
+            <a href="{{ url_for('main.logout') }}" style="margin-left: 15px; color: white; text-decoration: none;">退出登录</a>
+        </div>
+    </div>
+    
+    <!-- 主体容器 -->
+    <div class="container">
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+            <ul>
+                <li><a href="{{ url_for('main.dashboard') }}">仪表盘</a></li>
+                <li><a href="{{ url_for('main.news_list') }}" class="active">新闻管理</a></li>
+                <li><a href="{{ url_for('main.topic_list') }}">话题管理</a></li>
+                {% if current_user.has_role('admin') %}
+                <li><a href="{{ url_for('main.user_list') }}">用户管理</a></li>
+                <li><a href="{{ url_for('main.role_list') }}">角色管理</a></li>
+                <li><a href="{{ url_for('main.settings') }}">系统设置</a></li>
+                <li><a href="{{ url_for('main.test_crawl') }}">数据抓取</a></li>
+                {% endif %}
+            </ul>
+        </div>
+        
+        <!-- 内容区域 -->
+        <div class="content">
+        <div class="panel">
+            <div class="panel-header">
+                <h3>新闻列表</h3>
+            </div>
+            
+            <!-- 搜索栏 -->
+            <div class="search-bar">
+                <form class="search-form" method="get">
+                    <div class="form-group">
+                        <input type="text" name="keyword" placeholder="搜索关键词" style="width: 200px;">
+                    </div>
+                    <div class="form-group">
+                        <select name="topic" style="width: 150px;">
+                            <option value="">所有话题</option>
+                            {% for topic in topics %}
+                            <option value="{{ topic.id }}">{{ topic.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">搜索</button>
+                </form>
+            </div>
+            
+            <!-- 新闻列表表格 -->
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>标题</th>
+                            <th>来源</th>
+                            <th>发布时间</th>
+                            <th>情感分数</th>
+                            <th>热度</th>
+                            <th>评论数</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for news in news_items %}
+                        <tr>
+                            <td>{{ news.id }}</td>
+                            <td>{{ news.title }}</td>
+                            <td>{{ news.source }}</td>
+                            <td>{{ news.publish_time.strftime('%Y-%m-%d %H:%M') if news.publish_time else '未知' }}</td>
+                            <td>{{ news.sentiment_score }}</td>
+                            <td>{{ news.heat_score }}</td>
+                            <td>{{ news.comments_count }}</td>
+                            <td class="action-buttons">
+                                <a href="#" class="action-view" onclick="viewNews({{ news.id }})">查看</a>
+                                <a href="#" class="action-edit" onclick="editNews({{ news.id }})">编辑</a>
+                                <a href="#" class="action-delete" onclick="deleteNews({{ news.id }})">删除</a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="8" style="text-align: center; padding: 20px;">暂无数据</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- 分页 -->
+            <div class="pagination">
+                {% if pagination.has_prev %}
+                <a href="{{ url_for('main.news_list', page=pagination.prev_num) }}">上一页</a>
+                {% endif %}
+                
+                {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                    {% if page_num %}
+                        {% if page_num == pagination.page %}
+                        <a href="{{ url_for('main.news_list', page=page_num) }}" class="active">{{ page_num }}</a>
+                        {% else %}
+                        <a href="{{ url_for('main.news_list', page=page_num) }}">{{ page_num }}</a>
+                        {% endif %}
+                    {% else %}
+                    <span>...</span>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if pagination.has_next %}
+                <a href="{{ url_for('main.news_list', page=pagination.next_num) }}">下一页</a>
+                {% endif %}
+            </div>
+        </div>
+        </div>
+    </div>
+    
+    <!-- 引入LayUI JS -->
+    <script src="{{ url_for('static', filename='layui/layui.js') }}"></script>
+    <script>
+        layui.use(['layer', 'jquery'], function() {
+            var layer = layui.layer;
+            var $ = layui.jquery;
+            
+            // 菜单切换按钮
+            $('#menu-toggle').on('click', function() {
+                $('.sidebar').toggleClass('active');
+            });
+        });
+    
+        function viewNews(id) {
+            console.log('查看新闻:', id);
+            alert('查看新闻: ' + id);
+        }
+        
+        function editNews(id) {
+            console.log('编辑新闻:', id);
+            alert('编辑新闻: ' + id);
+        }
+        
+        function deleteNews(id) {
+            if (confirm('确定要删除这条新闻吗？')) {
+                console.log('删除新闻:', id);
+                alert('删除新闻: ' + id);
+            }
+        }
+        
+        // 自动关闭闪消息
+        setTimeout(function() {
+            var flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach(function(message) {
+                message.style.opacity = '0';
+                message.style.transition = 'opacity 0.5s ease';
+                setTimeout(function() {
+                    message.remove();
+                }, 500);
+            });
+        }, 3000);
+    </script>
+</body>
+</html>

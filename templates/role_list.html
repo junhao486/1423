@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>角色管理 - 舆情系统</title>
+    <!-- 引入LayUI CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='layui/css/layui.css') }}">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Microsoft YaHei', sans-serif;
+            background-color: #f2f2f2;
+        }
+        .header {
+            height: 60px;
+            background-color: #23262e;
+            color: #fff;
+            line-height: 60px;
+            padding: 0 20px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 20px;
+            float: left;
+        }
+        .header .user-info {
+            float: right;
+        }
+        .header .user-info a {
+            color: #fff;
+            text-decoration: none;
+            margin-left: 20px;
+        }
+        .container {
+            display: flex;
+            margin-top: 60px;
+            min-height: calc(100vh - 60px);
+        }
+        .sidebar {
+            width: 200px;
+            background-color: #393d49;
+            position: fixed;
+            left: 0;
+            top: 60px;
+            bottom: 0;
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+        }
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .sidebar li {
+            border-bottom: 1px solid #4e5465;
+        }
+        .sidebar a {
+            display: block;
+            padding: 15px 20px;
+            color: #c2c2c2;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        .sidebar a:hover {
+            background-color: #4e5465;
+            color: #fff;
+        }
+        .sidebar a.active {
+            background-color: #009688;
+            color: #fff;
+        }
+        .content {
+            flex: 1;
+            margin-left: 200px;
+            padding: 20px;
+            transition: margin-left 0.3s ease;
+        }
+        .panel {
+            background-color: #fff;
+            border-radius: 4px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .panel-header h3 {
+            margin: 0;
+            font-size: 18px;
+            color: #333;
+        }
+        /* 表格容器，支持水平滚动 */
+        .table-container {
+            overflow-x: auto;
+        }
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            .content {
+                margin-left: 0;
+            }
+            .header h1 {
+                font-size: 16px;
+            }
+            .header .user-info span {
+                display: none;
+            }
+            .panel-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .panel-header h3 {
+                margin-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 头部导航 -->
+    <div class="header">
+        <div style="display: flex; align-items: center;">
+            <button class="layui-btn layui-btn-primary layui-btn-sm" id="menu-toggle" style="margin-right: 10px;">
+                <i class="layui-icon layui-icon-menu"></i>
+            </button>
+            <h1>{{ config.APP_NAME }}</h1>
+        </div>
+        <div class="user-info">
+            <span>欢迎您，{{ current_user.username }}</span>
+            <a href="{{ url_for('main.logout') }}">退出登录</a>
+        </div>
+    </div>
+    
+    <!-- 主体容器 -->
+    <div class="container">
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+            <ul>
+                <li><a href="{{ url_for('main.dashboard') }}">仪表盘</a></li>
+                <li><a href="{{ url_for('main.news_list') }}">新闻列表</a></li>
+                <li><a href="{{ url_for('main.topic_list') }}">话题管理</a></li>
+                {% if current_user.has_role('admin') %}
+                <li><a href="{{ url_for('main.user_list') }}">用户管理</a></li>
+                <li><a href="{{ url_for('main.role_list') }}" class="active">角色管理</a></li>
+                <li><a href="{{ url_for('main.settings') }}">系统设置</a></li>
+                <li><a href="{{ url_for('main.test_crawl') }}">数据抓取</a></li>
+                {% endif %}
+            </ul>
+        </div>
+        
+        <!-- 内容区域 -->
+        <div class="content">
+            <div class="panel">
+                <div class="panel-header">
+                    <h3>角色列表</h3>
+                    <button class="layui-btn" id="add_role">添加角色</button>
+                </div>
+                
+                <!-- 角色列表表格 -->
+                <div class="table-container">
+                    <table class="layui-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>角色名称</th>
+                            <th>描述</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for role in roles %}
+                        <tr>
+                            <td>{{ role.id }}</td>
+                            <td>{{ role.name }}</td>
+                            <td>{{ role.description }}</td>
+                            <td>
+                                <button class="layui-btn layui-btn-xs" onclick="editRole({{ role.id }})">编辑</button>
+                                {% if role.id > 2 %} <!-- 保留默认角色 -->
+                                <button class="layui-btn layui-btn-xs layui-btn-danger" onclick="deleteRole({{ role.id }})">删除</button>
+                                {% else %}
+                                <button class="layui-btn layui-btn-xs layui-btn-disabled">删除</button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" style="text-align: center;">暂无角色数据</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 引入LayUI JS -->
+    <script src="{{ url_for('static', filename='layui/layui.js') }}"></script>
+    <script>
+        layui.use(['layer', 'form', 'jquery'], function() {
+            var layer = layui.layer;
+            var form = layui.form;
+            var $ = layui.jquery;
+            
+            // 菜单切换按钮
+            $('#menu-toggle').on('click', function() {
+                $('.sidebar').toggleClass('active');
+            });
+            
+            // 添加角色按钮点击事件
+            document.getElementById('add_role').onclick = function() {
+                layer.open({
+                    type: 1,
+                    title: '添加角色',
+                    area: ['500px', '300px'],
+                    content: `
+                        <div class="layui-form" style="padding: 20px;">
+                            <div class="layui-form-item">
+                                <label class="layui-form-label">角色名称</label>
+                                <div class="layui-input-block">
+                                    <input type="text" name="name" required lay-verify="required" placeholder="请输入角色名称" class="layui-input">
+                                </div>
+                            </div>
+                            <div class="layui-form-item">
+                                <label class="layui-form-label">描述</label>
+                                <div class="layui-input-block">
+                                    <textarea name="description" placeholder="请输入角色描述" class="layui-textarea"></textarea>
+                                </div>
+                            </div>
+                            <div class="layui-form-item">
+                                <div class="layui-input-block">
+                                    <button class="layui-btn" lay-submit lay-filter="add_role_form">提交</button>
+                                    <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+                                </div>
+                            </div>
+                        </div>
+                    `,
+                    success: function(layero) {
+                        form.render();
+                    }
+                });
+            };
+            
+            // 添加角色表单提交
+            form.on('submit(add_role_form)', function(data) {
+                $.post('/roles/add', data.field, function(res) {
+                    if (res.status === 'success') {
+                        layer.msg(res.msg, {icon: 1});
+                        setTimeout(function() {
+                            window.location.reload();
+                        }, 1500);
+                    } else {
+                        layer.msg(res.msg, {icon: 2});
+                    }
+                });
+                return false;
+            });
+        });
+        
+        // 编辑角色函数
+        function editRole(id) {
+            layui.use(['layer', 'form', 'jquery'], function() {
+                var layer = layui.layer;
+                var form = layui.form;
+                var $ = layui.jquery;
+                
+                // 获取角色信息
+                $.get('/roles/' + id, function(res) {
+                    if (res.status === 'success') {
+                        var role = res.data;
+                        layer.open({
+                            type: 1,
+                            title: '编辑角色',
+                            area: ['500px', '300px'],
+                            content: `
+                                <div class="layui-form" style="padding: 20px;">
+                                    <input type="hidden" name="id" value="${role.id}">
+                                    <div class="layui-form-item">
+                                        <label class="layui-form-label">角色名称</label>
+                                        <div class="layui-input-block">
+                                            <input type="text" name="name" value="${role.name}" required lay-verify="required" placeholder="请输入角色名称" class="layui-input">
+                                        </div>
+                                    </div>
+                                    <div class="layui-form-item">
+                                        <label class="layui-form-label">描述</label>
+                                        <div class="layui-input-block">
+                                            <textarea name="description" placeholder="请输入角色描述" class="layui-textarea">${role.description}</textarea>
+                                        </div>
+                                    </div>
+                                    <div class="layui-form-item">
+                                        <div class="layui-input-block">
+                                            <button class="layui-btn" lay-submit lay-filter="edit_role_form">提交</button>
+                                            <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `,
+                            success: function(layero) {
+                                form.render();
+                                
+                                // 编辑角色表单提交
+                                form.on('submit(edit_role_form)', function(data) {
+                                    $.ajax({
+                                        url: '/roles/' + id,
+                                        type: 'PUT',
+                                        contentType: 'application/json',
+                                        data: JSON.stringify(data.field),
+                                        success: function(res) {
+                                            if (res.status === 'success') {
+                                                layer.msg(res.msg, {icon: 1});
+                                                setTimeout(function() {
+                                                    window.location.reload();
+                                                }, 1500);
+                                            } else {
+                                                layer.msg(res.msg, {icon: 2});
+                                            }
+                                        }
+                                    });
+                                    return false;
+                                });
+                            }
+                        });
+                    } else {
+                        layer.msg(res.msg, {icon: 2});
+                    }
+                });
+            });
+        }
+        
+        // 删除角色函数
+        function deleteRole(id) {
+            layui.use(['layer', 'jquery'], function() {
+                var layer = layui.layer;
+                var $ = layui.jquery;
+                
+                layer.confirm('确定要删除这个角色吗？', function(index) {
+                    $.ajax({
+                        url: '/roles/' + id,
+                        type: 'DELETE',
+                        success: function(res) {
+                            if (res.status === 'success') {
+                                layer.msg(res.msg, {icon: 1});
+                                setTimeout(function() {
+                                    window.location.reload();
+                                }, 1500);
+                            } else {
+                                layer.msg(res.msg, {icon: 2});
+                            }
+                        }
+                    });
+                    layer.close(index);
+                });
+            });
+        }
+    </script>
+</body>
+</html>

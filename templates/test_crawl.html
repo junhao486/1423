@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据抓取测试</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='layui/css/layui.css') }}">
+    <script src="{{ url_for('static', filename='layui/layui.js') }}"></script>
+</head>
+<body>
+    <div class="layui-layout layui-layout-admin">
+        <!-- 顶部导航栏 -->
+        <div class="layui-header layui-bg-black">
+            <div class="layui-logo">舆情监控系统</div>
+            <ul class="layui-nav layui-layout-right">
+                <li class="layui-nav-item">
+                    <a href="javascript:;">
+                        <img src="https://tva1.sinaimg.cn/crop.0.0.118.118.180/5db11ff4gw1e77d3nqrv8j203b03cweg.jpg" class="layui-nav-img">
+                        {{ current_user.username }}
+                    </a>
+                    <dl class="layui-nav-child">
+                        <dd><a href="{{ url_for('main.logout') }}">退出登录</a></dd>
+                    </dl>
+                </li>
+            </ul>
+        </div>
+
+        <!-- 侧边栏 -->
+        <div class="layui-side layui-bg-black">
+            <div class="layui-side-scroll">
+                <ul class="layui-nav layui-nav-tree"  lay-filter="test">
+                    <li class="layui-nav-item">
+                        <a href="{{ url_for('main.dashboard') }}">
+                            <i class="layui-icon layui-icon-home"></i>
+                            <span>首页/仪表盘</span>
+                        </a>
+                    </li>
+                    <li class="layui-nav-item">
+                        <a href="{{ url_for('main.news_list') }}">
+                            <i class="layui-icon layui-icon-read"></i>
+                            <span>新闻管理</span>
+                        </a>
+                    </li>
+                    <li class="layui-nav-item">
+                        <a href="{{ url_for('main.topic_list') }}">
+                            <i class="layui-icon layui-icon-edit"></i>
+                            <span>话题管理</span>
+                        </a>
+                    </li>
+                    {% if current_user.is_admin %}
+                    <li class="layui-nav-item">
+                        <a href="{{ url_for('main.user_list') }}">
+                            <i class="layui-icon layui-icon-group"></i>
+                            <span>用户管理</span>
+                        </a>
+                    </li>
+                    <li class="layui-nav-item">
+                        <a href="{{ url_for('main.settings') }}">
+                            <i class="layui-icon layui-icon-set"></i>
+                            <span>系统设置</span>
+                        </a>
+                    </li>
+                    <li class="layui-nav-item layui-this">
+                        <a href="{{ url_for('main.test_crawl') }}">
+                            <i class="layui-icon layui-icon-data"></i>
+                            <span>数据抓取</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+
+        <!-- 内容区域 -->
+        <div class="layui-body">
+            <div style="padding: 20px;">
+                <div class="layui-card">
+                    <div class="layui-card-header">数据抓取测试</div>
+                    <div class="layui-card-body">
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="layui-alert layui-bg-{{ 'green' if category == 'success' else 'red' }}" style="margin-bottom: 15px;">
+                                        {{ message }}
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+                        
+                        <form class="layui-form" method="post">
+                            <div class="layui-form-item">
+                                <label class="layui-form-label">关键词</label>
+                                <div class="layui-input-block">
+                                    <input type="text" name="keyword" placeholder="请输入要抓取的关键词" value="宜宾" autocomplete="off" class="layui-input">
+                                </div>
+                            </div>
+                            <div class="layui-form-item">
+                                <div class="layui-input-block">
+                                    <button class="layui-btn layui-btn-normal" lay-submit lay-filter="formDemo">开始抓取</button>
+                                    <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部信息 -->
+        <div class="layui-footer">
+            <p style="text-align: center; line-height: 44px;">© 2025 舆情监控系统</p>
+        </div>
+    </div>
+
+    <script>
+        layui.use('form', function(){
+            var form = layui.form;
+        });
+    </script>
+</body>
+</html>
